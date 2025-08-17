@@ -34,36 +34,27 @@ Bootstrap your SaaS with a modern tech stack built to move quick. Follow the gui
 
 ## Getting started
 
-### 1. Setup Supabase
-
-1. Go to [supabase.com](https://supabase.com) and create a project
-1. Go to Project Settings → Database → Database password and click reset database password then click generate a new password. (I know you already made one, but this fixes a [bug with their CLI where it doesn't like special characters in the password](https://github.com/supabase/supabase/issues/15184))
-1. Save this password somewhere, you can't see it after closing the box
-
-### 2. Setup Stripe
-
-1. Go to [stripe.com](https://stripe.com) and create a project
-1. Go to [Customer Portal Settings](https://dashboard.stripe.com/test/settings/billing/portal) and click the `Active test link` button
-
-### 3. Setup Resend
-
-1. Go to [resend.com](https://resend.com) and create an account
-1. Go to the [API Keys page](https://resend.com/api-keys) and create an API Key
-1. Add the [Supabase Resend integration](https://supabase.com/partners/integrations/resend)
-
-### 4. Deploy
+### 1. Deploy to Vercel with integrations
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FKolbySisk%2Fnext-supabase-stripe-starter&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,SUPABASE_DB_PASSWORD,NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,STRIPE_SECRET_KEY,STRIPE_WEBHOOK_SECRET,RESEND_API_KEY&demo-title=AI%20Twitter%20Banner%20Demo&demo-url=https%3A%2F%2Fai-twitter-banner.vercel.app&integration-ids=oac_VqOgBHqhEoFTPzGkPd7L0iH6)
 
-1. Next click the deploy button ⬆️
-1. On the form create a new repo and add the Supabase integration
-1. Add the environment variables that you have available. For the stripe webhook secret just put any value - we will come back to update this after configuring the webhook
+1. Click the deploy button ⬆️
+1. On the form create a new repo and add the Supabase integration (this creates a Supabase project and provisions all DB envs like `POSTGRES_URL` automatically)
+1. Add the Resend API key from [resend.com/api-keys](https://resend.com/api-keys)
+1. Add your Stripe keys from [stripe.com](https://stripe.com). For the webhook secret just put any value — we'll update it after configuring the webhook
+1. Go to [Customer Portal Settings](https://dashboard.stripe.com/test/settings/billing/portal) and click the `Active test link` button
 1. Click Deploy
-1. While you wait, clone your new repo and open it in your code editor. Then create a file named `.env.local`. Copy and pase the contents of `.env.local.example` into this file and add the correct values. They should be the same values you added in above.
+1. After deploy, link your local repo to the Vercel project and pull envs to generate `.env.local`:
+
+```
+pnpm i -g vercel
+vercel link
+vercel env pull
+```
 
 ![Vercel env config](/delete-me/deplyoment-env.png)
 
-### 5. Stripe Webhook
+### 2. Setup Stripe Webhook
 
 1. After deploying go to your Vercel dashboard and find your Vercel URL
 1. Next go to your Stripe dashboard, click `Developers` in the top nav, and then the `Webhooks` tab
@@ -75,34 +66,33 @@ Bootstrap your SaaS with a modern tech stack built to move quick. Follow the gui
 1. Go to your `Vercel project settings` → `Environment Variables`
 1. Update the value of the `STRIPE_WEBHOOK_SECRET` env with your newly acquired webhook secret. Press `Save`
 
-### 6. Run Supabase Migration
+### 3. Run database migrations (Drizzle)
 
-Now we're going to run the initial [Supabase Migration](https://supabase.com/docs/reference/cli/supabase-migration-new) to create your database tables.
+Migrations are handled with Drizzle. Once `.env.local` exists (from `vercel env pull`) and includes `POSTGRES_URL`, run:
 
-1. Run `bunx supabase login`
-1. Run `bunx supabase init`
-1. Open your `package.json` and update both `UPDATE_THIS_WITH_YOUR_SUPABASE_PROJECT_ID` strings with your supabase project id
-1. Run `bun run supabase:link`
-1. Run `bun run migration:up`
+```
+pnpm db:generate
+pnpm db:migrate
+```
 
-### 7. Run Stripe Fixture
+### 4. Run Stripe Fixture
 
 [Stripe fixtures](https://stripe.com/docs/cli/fixtures) are an easy way to configure your product offering without messing around in the Stripe UI.
 
 1. Install the [Stripe CLI](https://stripe.com/docs/stripe-cli#install). For Macs run: `brew install stripe/stripe-cli/stripe`
 1. Run (make sure to update the command with your Stripe sk) `stripe fixtures ./stripe-fixtures.json --api-key UPDATE_THIS_WITH_YOUR_STRIPE_SK`
 
-### 8. Last steps
+### 5. Last steps
 
 1. Do a `Search All` in your code editor for `UPDATE_THIS` and update all instances with the relevant value (**except for .env.local.example!**)
 1. Delete the `delete-me` dir
 
-### 9. Check it out!
+### 6. Check it out!
 
 You did it! You should be able to look in your Stripe dashboard and see your products, and you should also see the same data has been populated in your Supabase database. Now let's test everything.
 
-1. Run `bun i`
-1. Run `bun run dev`.
+1. Run `pnpm i`
+1. Run `pnpm dev`.
 1. Go to the app and click `Get started for free` - this will take you to the login page
 1. We haven't configured auth providers, so for now click `Continue with Email` and submit your email address
 1. Click the link sent to your email and you should be redirected back to your app - authenticated
@@ -133,22 +123,22 @@ productMetadata.teamInvites; // The value you set in the fixture
 
 ### Managing your database schema
 
-[Migrations](https://supabase.com/docs/reference/cli/supabase-migration-new) are a powerful concept for managing your database schema. Any changes you make to your database schema should be done through migrations.
+Schema changes flow through Drizzle. Any changes you make should be reflected in `src/db/schema.ts`, then generated and applied.
 
 Say you want to add a table named `invites`.
 
-First run `npm run migration:new add-invites-table`
-Then edit your file to include:
+1. Update `src/db/schema.ts` to define your new table/columns
+1. Generate SQL from the schema:
 
-```sql
-create table invites (
-  id uuid not null primary key default gen_random_uuid(),
-  email text not null,
-);
-alter table invites enable row level security;
+```
+pnpm db:generate
 ```
 
-Then run `npm run migration:up` and your table will be added.
+1. Apply the migration to your Supabase Postgres:
+
+```
+pnpm db:migrate
+```
 
 ### Configuring auth providers
 
@@ -178,7 +168,7 @@ resendClient.emails.send({
 
 ### File structure
 
-The file structure uses the group by `feature` concept. This is where you will colocate code related to a specific feature, with the exception of UI code. Typically you want to keep your UI code in the `app` dir, with the exception of reusable components. Most of the time reusable components will be agnostic to a feature and should live in the `components` dir. The `components/ui` dir is where `shadcn/ui` components are generated to.
+The file structure uses **the** group by `feature` concept. This is where you will colocate code related to a specific feature, with the exception of UI code. Typically you want to keep your UI code in the `app` dir, with the exception of reusable components. Most of the time reusable components will be agnostic to a feature and should live in the `components` dir. The `components/ui` dir is where `shadcn/ui` components are generated to.
 
 ### Going live
 

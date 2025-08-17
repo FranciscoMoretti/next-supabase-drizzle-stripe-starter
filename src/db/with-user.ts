@@ -3,7 +3,7 @@ import postgres from 'postgres';
 
 import * as schema from './schema';
 
-const connectionString = process.env.DATABASE_URL || `postgresql://postgres:postgres@127.0.0.1:54322/postgres`;
+const connectionString = process.env.POSTGRES_URL || `postgresql://postgres:postgres@127.0.0.1:54322/postgres`;
 
 function decodeJwt(token: string): Record<string, unknown> {
   const [, payload] = token.split('.');

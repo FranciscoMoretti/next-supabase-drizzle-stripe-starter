@@ -1,6 +1,6 @@
 import { defineConfig } from 'drizzle-kit';
 
-console.log(process.env.DATABASE_URL);
+console.log(process.env.POSTGRES_URL);
 
 export default defineConfig({
   // Use service role to allow full introspection/generation
@@ -12,6 +12,6 @@ export default defineConfig({
   strict: true,
   dbCredentials: {
     // Prefer local dev; fall back to env var for remote
-    url: process.env.DATABASE_URL || `postgresql://postgres:postgres@127.0.0.1:54322/postgres`,
+    url: process.env.POSTGRES_URL || `postgresql://postgres:postgres@127.0.0.1:54322/postgres`,
   },
 });

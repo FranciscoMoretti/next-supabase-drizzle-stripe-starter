@@ -3,7 +3,7 @@ import postgres from 'postgres';
 
 import * as schema from './schema';
 
-const connectionString = process.env.DATABASE_URL || `postgresql://postgres:postgres@127.0.0.1:54322/postgres`;
+const connectionString = process.env.POSTGRES_URL || `postgresql://postgres:postgres@127.0.0.1:54322/postgres`;
 
 // Use a global to prevent creating multiple clients in dev HMR
 const globalForDb = global as unknown as {
