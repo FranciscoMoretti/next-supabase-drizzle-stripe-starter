@@ -1,9 +1,9 @@
 import Stripe from 'stripe';
 
-import { supabaseAdminClient } from '@/libs/supabase/supabase-admin';
-import type { Database } from '@/libs/supabase/types';
+import { db } from '@/db/client';
+import { products } from '@/db/schema';
 
-type Product = Database['public']['Tables']['products']['Row'];
+type Product = typeof products.$inferInsert;
 
 export async function upsertProduct(product: Stripe.Product) {
   const productData: Product = {
@@ -15,11 +15,6 @@ export async function upsertProduct(product: Stripe.Product) {
     metadata: product.metadata,
   };
 
-  const { error } = await supabaseAdminClient.from('products').upsert([productData]);
-
-  if (error) {
-    throw error;
-  } else {
-    console.info(`Product inserted/updated: ${product.id}`);
-  }
+  await db.insert(products).values(productData).onConflictDoUpdate({ target: products.id, set: productData });
+  console.info(`Product inserted/updated: ${product.id}`);
 }

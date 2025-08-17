@@ -1,14 +1,18 @@
+import { eq } from 'drizzle-orm';
+
+import { db } from '@/db/client';
+import { customers } from '@/db/schema';
 import { stripeAdmin } from '@/libs/stripe/stripe-admin';
-import { supabaseAdminClient } from '@/libs/supabase/supabase-admin';
 
-export async function getOrCreateCustomer({ userId, email }: { userId: string; email: string }) {
-  const { data, error } = await supabaseAdminClient
-    .from('customers')
-    .select('stripe_customer_id')
-    .eq('id', userId)
-    .single();
+export async function getOrCreateCustomer({ userId, email }: { userId: string; email: string }): Promise<string> {
+  const existing = await db
+    .select({ stripeCustomerId: customers.stripeCustomerId })
+    .from(customers)
+    .where(eq(customers.id, userId))
+    .limit(1)
+    .then((rows) => rows[0]);
 
-  if (error || !data?.stripe_customer_id) {
+  if (!existing?.stripeCustomerId) {
     // No customer record found, let's create one.
     const customerData = {
       email,
@@ -20,16 +24,10 @@ export async function getOrCreateCustomer({ userId, email }: { userId: string; e
     const customer = await stripeAdmin.customers.create(customerData);
 
     // Insert the customer ID into our Supabase mapping table.
-    const { error: supabaseError } = await supabaseAdminClient
-      .from('customers')
-      .insert([{ id: userId, stripe_customer_id: customer.id }]);
-
-    if (supabaseError) {
-      throw supabaseError;
-    }
+    await db.insert(customers).values({ id: userId, stripeCustomerId: customer.id });
 
     return customer.id;
   }
 
-  return data.stripe_customer_id;
+  return existing.stripeCustomerId;
 }

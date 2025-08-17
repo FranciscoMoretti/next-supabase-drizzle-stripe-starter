@@ -22,7 +22,7 @@ export default async function AccountPage() {
   if (subscription) {
     for (const product of products) {
       for (const price of product.prices) {
-        if (price.id === subscription.price_id) {
+        if (price.id === subscription.priceId) {
           userProduct = product;
           userPrice = price;
         }
