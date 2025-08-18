@@ -84,6 +84,7 @@ pnpm db:migrate
 
 ### 5. Last steps
 
+1. Setup the Vercel branches redirect URLs for supabase auth https://supabase.com/docs/guides/getting-started/tutorials/with-nextjs
 1. Do a `Search All` in your code editor for `UPDATE_THIS` and update all instances with the relevant value (**except for .env.local.example!**)
 1. Delete the `delete-me` dir
 
